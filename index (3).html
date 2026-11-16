@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chem Quiz 🧪</title>
+<link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#6b4a63;--r:#ff9db5;--b:#93cbff;--y:#ffd873;--g:#93e5b4}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:'Mali','Noto Sans Thai',sans-serif;color:var(--ink);background:linear-gradient(135deg,#ffd6e8,#e4d9ff 50%,#d3f1ff) fixed}
+#app{max-width:960px;margin:0 auto;padding:14px;position:relative;z-index:1}
+.bg i{position:fixed;font-style:normal;font-size:32px;opacity:.55;animation:fl 8s ease-in-out infinite;z-index:0}
+@keyframes fl{50%{transform:translateY(-26px) rotate(14deg)}}
+.card{background:#fffafd;border:4px solid #fff;border-radius:26px;box-shadow:0 6px 0 #e8cfe6,0 12px 24px #c9a7e84d;padding:16px;margin:12px 0}
+h1,h2{margin:.25em 0;text-align:center}h1{font-size:1.9rem}
+label{font-weight:700;display:block;margin-top:8px}
+button{font:inherit;font-weight:700;border:0;border-radius:18px;padding:10px 18px;background:#c9b6ff;color:#fff;box-shadow:0 4px 0 #a994e6;cursor:pointer;margin:4px}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 #a994e6}
+button.pk{background:#ff9fc4;box-shadow:0 4px 0 #e57ba6}button.mt{background:#6fd6b8;box-shadow:0 4px 0 #4fb598}button.gr{background:#cfc4e0;box-shadow:0 4px 0 #b2a6c7}
+button:disabled{opacity:.45;cursor:default}
+input,textarea{font:inherit;width:100%;padding:9px 14px;border:3px solid #e4d9ff;border-radius:16px;background:#fff;color:var(--ink)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ch{display:block;border-radius:20px;padding:16px;font-weight:700;font-size:1.05rem;color:#5a3a4a;width:100%;margin:0;text-align:left;box-shadow:0 5px 0 rgba(0,0,0,.12)}
+.c0{background:var(--r)}.c1{background:var(--b)}.c2{background:var(--y)}.c3{background:var(--g)}
+.row{display:flex;gap:10px;align-items:center;padding:8px 14px;border-radius:16px;margin:6px 0;background:#fff}
+.row b{flex:1}.r1{background:#fff3c4}.r2{background:#eceff6}.r3{background:#ffe3cf}.md{width:34px;text-align:center;font-size:1.4rem}
+.chip{display:inline-block;background:#fff;border:3px solid #e4d9ff;border-radius:20px;padding:4px 14px;margin:4px;animation:pop .4s}
+@keyframes pop{from{transform:scale(0)}}
+.bar{height:16px;border-radius:9px;background:#fff;overflow:hidden}.bar>div{height:100%;width:100%;background:linear-gradient(90deg,#ff9fc4,#ffd873);transition:width .25s linear}
+.bk{width:120px;display:block;margin:auto;animation:bob 2.5s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-10px)}}
+.bb{animation:rise 2s infinite}.bb:nth-child(2n){animation-delay:.7s}
+@keyframes rise{from{transform:translateY(0);opacity:1}to{transform:translateY(-40px);opacity:0}}
+.ct{text-align:center}.er{color:#e0527f;text-align:center}
+</style></head><body>
+<div class="bg"><i style="left:4%;top:12%">🧪</i><i style="left:88%;top:20%;animation-delay:1s">🫧</i><i style="left:8%;top:70%;animation-delay:2s">⚗️</i><i style="left:90%;top:75%;animation-delay:3s">🌸</i><i style="left:48%;top:90%;animation-delay:4s">✨</i></div>
+<div id="app"></div>
+<p style="text-align:center;font-size:12px;opacity:.5;position:relative;z-index:1">เวอร์ชัน 3 · 16/11/2569</p>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ===== 1) วาง firebaseConfig ของคุณตรงนี้ ===== */
+const CFG={
+  apiKey:"AIzaSyADG99pPJGGdatdlyS2DrvtS2MxI_f1n7g",
+  authDomain:"chemhoot.firebaseapp.com",
+  databaseURL:"https://chemhoot-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"chemhoot",
+  storageBucket:"chemhoot.firebasestorage.app",
+  messagingSenderId:"982305381696",
+  appId:"1:982305381696:web:03ab0b079c8b2d16baaea5"
+};
+/* ============================================ */
+firebase.initializeApp(CFG);const db=firebase.database();
+const HOST=new URLSearchParams(location.search).get('host')==='1',MAX=100;
+const PIN='f42fc151594039f422ba712c1b2adc657ed8b509fc8bf1eaa155376512b6fe0c'; // sha256 ของรหัสครู
+const $=s=>document.querySelector(s),app=$('#app'),SH=['▲','◆','●','■'];
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sha=async t=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)))].map(b=>b.toString(16).padStart(2,'0')).join('');
+let off=0;db.ref('.info/serverTimeOffset').on('value',s=>off=s.val()||0);
+const now=()=>Date.now()+off,r2=n=>Math.round(n*100)/100;
+let det=[],tick=null;
+const on=(r,f,e)=>{r.on('value',f,e);det.push(r)};
+const every=f=>{clearInterval(tick);tick=setInterval(f,250)};
+const cleanup=()=>{clearInterval(tick);det.forEach(r=>r.off());det=[]};
+const FACTS=['ตารางธาตุมี 118 ธาตุ','ไฮโดรเจนเป็นธาตุที่เบาที่สุด (เลขอะตอม 1)','เพชรกับไส้ดินสอเป็นธาตุคาร์บอนเหมือนกัน!','ทองคำมีสัญลักษณ์ธาตุคือ Au','น้ำ (H₂O) มีไฮโดรเจน 2 อะตอม ออกซิเจน 1 อะตอม'];
+const beaker=`<svg class="bk" viewBox="0 0 120 150"><path d="M40 10h40v35l30 70q4 18-14 18H24q-18 0-14-18l30-70z" fill="#fff" stroke="#c9a7e8" stroke-width="5" stroke-linejoin="round"/><path d="M27 98h66l14 30q3 9-8 9H21q-11 0-8-9z" fill="#ffc2de"/><circle class="bb" cx="45" cy="92" r="5" fill="#d9c8ff"/><circle class="bb" cx="72" cy="88" r="4" fill="#bfe6ff"/><circle cx="48" cy="114" r="3.5" fill="#6b4a63"/><circle cx="72" cy="114" r="3.5" fill="#6b4a63"/><path d="M54 122q6 6 12 0" stroke="#6b4a63" fill="none" stroke-width="3" stroke-linecap="round"/></svg>`;
+const board=B=>'<div>'+(B||[]).map(b=>`<div class="row r${b.r}"><span class="md">${['🥇','🥈','🥉'][b.r-1]||b.r}</span><b>${esc(b.n)}</b><span>${b.s}${b.d?` <small>(−${b.d})</small>`:''}</span></div>`).join('')+'</div>';
+const qHtml=(s,img,rv)=>`<h2>${esc(s.q)}</h2>${img?`<img src="${img}" style="display:block;max-width:100%;max-height:260px;margin:auto;border-radius:16px">`:''}<div class="g2" style="margin-top:10px">${s.c.map((c,k)=>`<div class="ch c${k}" style="${rv&&k!==s.a?'opacity:.3':''}">${SH[k]} ${esc(c)}${rv&&k===s.a?' ✅':''}</div>`).join('')}</div>`;
+
+/* ================= หน้าคุณครู ================= */
+function login(){cleanup();app.innerHTML=`<div class="card">${beaker}<h1>🧪 ห้องควบคุมของคุณครู</h1><p class="ct">กรอกรหัสผ่านเพื่อเข้าสู่ระบบ</p><input id="pw" type="password" inputmode="numeric" placeholder="รหัสผ่าน" onkeydown="event.key==='Enter'&&doLogin()"><div class="ct"><button class="pk" onclick="doLogin()">เข้าสู่ระบบ</button></div><p id="er" class="er"></p></div>`}
+async function doLogin(){if(await sha($('#pw').value.trim())===PIN){sessionStorage.ok='1';menu()}else $('#er').textContent='รหัสผ่านไม่ถูกต้องนะคะ'}
+let META={},S,Q,IMG,SL,QZ,CUR={},lastK='',busy=0;
+function menu(){cleanup();on(db.ref('meta'),s=>{META=s.val()||{};drawMenu()})}
+function drawMenu(){app.innerHTML=`<h1>🍭 Chem Quiz · ห้องคุณครู</h1><div class="card">ลิงก์สำหรับนักเรียน<input readonly value="${location.origin+location.pathname}" onclick="this.select()"></div><div class="g2">`+[1,2,3,4,5,6].map(i=>{const m=META[i];return `<div class="card"><h2>ห้อง ${i}</h2>`+(m?`<p class="ct"><b>${esc(m.name)}</b><br>${m.n} ข้อ</p><div class="ct"><button class="mt" onclick="play(${i})">▶ เล่น</button><button onclick="edit(${i})">✏️ แก้ไข</button><button class="gr" onclick="del(${i})">🗑 ลบ</button></div>`:`<p class="ct">ว่าง</p><div class="ct"><button class="pk" onclick="edit(${i})">➕ สร้างเกม</button></div>`)+'</div>'}).join('')+'</div>'}
+async function del(i){if(!confirm(`ลบเกม "${META[i].name}" ถาวรใช่ไหมคะ?`))return;await Promise.all(['quiz','img','meta','room'].map(k=>db.ref(k+'/'+i).remove()))}
+function addQ(){Q.qs.push({q:'',c:['','','',''],a:0,t:20,p:1});IMG.push(null)}
+function delQ(i){if(Q.qs.length<2)return;Q.qs.splice(i,1);IMG.splice(i,1);drawEd()}
+async function edit(i){cleanup();S=i;IMG=[];if(META[i]){const[a,b]=await Promise.all([db.ref('quiz/'+i).once('value'),db.ref('img/'+i).once('value')]);Q=a.val();Q.qs=Q.qs||[];const im=b.val()||{};Q.qs.forEach((_,k)=>IMG[k]=im[k]||null)}else{Q={name:'',pw:'',qs:[]};addQ()}drawEd()}
+function pick(i,el){const f=el.files[0];if(!f)return;const im=new Image();im.onload=()=>{const k=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);IMG[i]=c.toDataURL('image/jpeg',.7);drawEd()};im.src=URL.createObjectURL(f)}
+function drawEd(){app.innerHTML=`<h1>✏️ ห้อง ${S}</h1><div class="card"><label>ชื่อเกม</label><input value="${esc(Q.name)}" oninput="Q.name=this.value"><label>รหัสผ่านเข้าห้อง (ที่นักเรียนต้องพิมพ์)</label><input value="${esc(Q.pw)}" oninput="Q.pw=this.value"></div>`+Q.qs.map((q,i)=>`<div class="card"><b>ข้อ ${i+1}</b><button class="gr" style="float:right" onclick="delQ(${i})">🗑</button><textarea rows="2" placeholder="พิมพ์คำถาม (หรือใส่รูปภาพแทนก็ได้)" oninput="Q.qs[${i}].q=this.value">${esc(q.q)}</textarea><input type="file" accept="image/*" onchange="pick(${i},this)">`+(IMG[i]?`<img src="${IMG[i]}" style="max-width:100%;max-height:150px;border-radius:14px"><button class="gr" onclick="IMG[${i}]=null;drawEd()">เอารูปออก</button>`:'')+q.c.map((c,k)=>`<div class="c${k}" style="display:flex;gap:8px;align-items:center;border-radius:16px;padding:6px 10px;margin:6px 0"><input type="radio" name="a${i}" ${q.a===k?'checked':''} onchange="Q.qs[${i}].a=${k}" style="width:22px;flex:none"><span>${SH[k]}</span><input value="${esc(c)}" placeholder="ตัวเลือก ${k+1}" oninput="Q.qs[${i}].c[${k}]=this.value"></div>`).join('')+`<small>กดวงกลมหน้าตัวเลือกที่เป็นคำตอบที่ถูก</small><div class="g2"><div>เวลา (วินาที)<input type="number" min="3" value="${q.t}" oninput="Q.qs[${i}].t=+this.value"></div><div>คะแนน (1–10 ทศนิยมได้)<input type="number" min="1" max="10" step="any" value="${q.p}" oninput="Q.qs[${i}].p=+this.value"></div></div></div>`).join('')+`<div class="ct"><button class="mt" onclick="addQ();drawEd()">➕ เพิ่มคำถาม</button><button class="pk" onclick="save()">💾 บันทึก</button><button class="gr" onclick="menu()">← กลับ</button></div><p id="er" class="er"></p>`}
+async function save(){const e=m=>$('#er').textContent=m;
+if(!Q.name.trim()||!Q.pw.trim())return e('ใส่ชื่อเกมและรหัสผ่านก่อนนะคะ');
+for(const[i,q]of Q.qs.entries()){if(!q.q.trim()&&!IMG[i])return e(`ข้อ ${i+1}: ใส่คำถามหรือรูปภาพ`);if(q.c.some(c=>!c.trim()))return e(`ข้อ ${i+1}: ใส่ตัวเลือกให้ครบ 4 ช้อย`);if(!(q.t>=3&&q.t<=600))return e(`ข้อ ${i+1}: เวลาต้องอยู่ระหว่าง 3–600 วินาที`);if(!(q.p>=1&&q.p<=10))return e(`ข้อ ${i+1}: คะแนนต้องอยู่ระหว่าง 1–10`)}
+const im={};IMG.forEach((d,i)=>{if(d)im[i]=d});const nm=Q.name.trim(),pw=Q.pw.trim();
+await Promise.all([db.ref('quiz/'+S).set({name:nm,pw,qs:Q.qs}),db.ref('img/'+S).set(im),db.ref('meta/'+S).set({name:nm,n:Q.qs.length,h:await sha(pw)})]);
+alert('บันทึกแล้วค่ะ 🎉');menu()}
+
+const R_=()=>db.ref('room/'+SL);
+async function play(i){cleanup();SL=i;QZ=(await db.ref('quiz/'+i).once('value')).val();
+if(!(await R_().child('state').once('value')).exists())await R_().child('state').set({ph:'lobby'});
+lastK='';busy=0;on(R_(),s=>{CUR=s.val()||{};paint()});every(loop)}
+function paint(){const s=CUR.state;if(!s)return;const k=s.ph+'|'+s.i;if(k!==lastK){lastK=k;full(s)}else part(s)}
+function full(s){const n=Object.keys(CUR.players||{}).length;
+let h=`<div style="text-align:right"><button class="gr" onclick="menu()">← เมนู</button><button class="pk" onclick="reset()">🧹 ล้างกระดาน / เริ่มใหม่</button></div><h1>${esc(QZ.name)}</h1>`;
+if(s.ph==='lobby')h+=`<div class="card">${beaker}<h2>ห้องรอผู้เล่น</h2><p class="ct">นักเรียนเข้าที่: <b>${location.origin+location.pathname}</b><br>เลือกห้อง ${SL} แล้วใส่รหัสผ่านของเกม</p><h2><span id="nc">${n}</span>/${MAX} คน</h2><div id="pl" class="ct"></div><div class="ct"><button class="pk" style="font-size:1.4rem" onclick="startQ(0)">🚀 เริ่มเกม</button></div></div>`;
+else if(s.ph==='q'||s.ph==='sc')h+=`<div class="card"><div style="display:flex;justify-content:space-between"><b>ข้อ ${s.i+1}/${s.n}</b><b id="tm"></b></div><div class="bar"><div id="bf"></div></div>${qHtml(s,CUR.curImg)}<p class="ct">ตอบแล้ว <b id="ac"></b> / ${n} คน</p><div class="ct"><button class="mt" onclick="endQ()">⏭ ข้ามเวลา / ไปแสดงอันดับ</button></div></div>`;
+else if(s.ph==='r')h+=`<div class="card"><b>ข้อ ${s.i+1}/${s.n}</b>${qHtml(s,CUR.curImg,1)}<p class="ct">${(s.d||[]).map((v,k)=>`${SH[k]} ${v} คน`).join(' · ')}</p></div><div class="card"><h2>🏆 อันดับ 15 อันดับแรก</h2>${board(CUR.board)}</div><div class="ct"><button class="pk" onclick="nextQ()">${s.i+1<s.n?'ข้อต่อไป ➡':'🏆 ดูอันดับสุดท้าย'}</button></div>`;
+else if(s.ph==='f')h+=`<div class="card"><h1>🎉 สรุปอันดับสุดท้าย 🎉</h1>${board(CUR.board)}</div>`;
+app.innerHTML=h;part(s)}
+function part(s){const P=CUR.players||{},ids=Object.keys(P);
+if(s.ph==='lobby'&&$('#pl')){$('#nc').textContent=ids.length;$('#pl').innerHTML=ids.map(id=>`<span class="chip">${esc(P[id].n)} <a href="#" onclick="kick('${id}');return false" style="color:#e0527f;text-decoration:none">✕</a></span>`).join('')}
+if(s.ph==='q'&&$('#ac'))$('#ac').textContent=Object.keys(CUR.ans||{}).length}
+function loop(){const s=CUR.state;if(!s||s.ph!=='q')return;const left=(s.end-now())/1000,all=Object.keys(CUR.players||{}).length,an=Object.keys(CUR.ans||{}).length;
+if($('#tm'))$('#tm').textContent='⏱ '+Math.max(0,Math.ceil(left))+' วิ';if($('#bf'))$('#bf').style.width=Math.max(0,Math.min(100,left/s.t*100))+'%';
+if(left<=-0.7||(all>0&&an>=all))endQ()}
+async function startQ(i){const q=QZ.qs[i],im=(await db.ref('img/'+SL+'/'+i).once('value')).val(),st=now()+800;busy=0;
+await R_().update({ans:null,curImg:im,state:{ph:'q',i,n:QZ.qs.length,q:q.q,c:q.c,t:q.t,end:st+q.t*1000}})}
+async function endQ(){const s=CUR.state;if(!s||s.ph!=='q'||busy)return;busy=1;const R=R_();
+const t=await R.child('state').transaction(x=>x&&x.ph==='q'&&x.i===s.i?{...x,ph:'sc'}:undefined);
+if(!t.committed){busy=0;return}
+const[pl,an]=await Promise.all([R.child('players').once('value'),R.child('ans').once('value')]),P=pl.val()||{},A=an.val()||{},q=QZ.qs[s.i],u={},d=[0,0,0,0];
+for(const id in P){const a=A[id];let g=0,ok=2,c=-1;
+ if(a&&a.at<=s.end+1500&&a.c>=0&&a.c<4){c=a.c;d[c]++;ok=c===q.a?1:0;if(ok)g=r2(q.p*Math.min(q.t,Math.max(0,(s.end-a.at)/1000)))}
+ P[id].s=r2((P[id].s||0)+g);Object.assign(u,{[id+'/s']:P[id].s,[id+'/g']:g,[id+'/ok']:ok,[id+'/c']:c})}
+const L=Object.entries(P).sort((a,b)=>b[1].s-a[1].s);let rk=0,pv=null;
+const B=L.map(([id,p],k)=>{if(p.s!==pv){rk=k+1;pv=p.s}u[id+'/r']=rk;return{n:p.n,s:p.s,r:rk,d:k?r2(L[k-1][1].s-p.s):0}}).slice(0,15);
+await R.child('players').update(u);
+await R.update({board:B,'state/ph':'r','state/a':q.a,'state/d':d});busy=0}
+function nextQ(){const s=CUR.state;s.i+1<s.n?startQ(s.i+1):R_().child('state/ph').set('f')}
+async function reset(){if(!confirm('ล้างกระดานและเริ่มใหม่? ผู้เล่นทุกคนจะออกจากห้อง'))return;await R_().remove();await R_().child('state').set({ph:'lobby'});lastK=''}
+function kick(id){R_().child('players/'+id).remove();R_().child('cnt').transaction(x=>Math.max(0,(x||1)-1))}
+
+/* ================= หน้านักเรียน ================= */
+let ID,SLOT,ME={},ST,ALL={},BD=[],MY=null,IMGQ=null,imgI=-1,joined=0,META2={},sel=null;
+function stuInit(){let sv=null;try{sv=JSON.parse(localStorage.cq||'null')}catch(e){}if(!sv)return joinScreen();ID=sv.id;SLOT=sv.slot;
+db.ref('room/'+SLOT+'/players/'+ID).once('value').then(s=>s.exists()?enter():(localStorage.removeItem('cq'),joinScreen()))}
+function drawRooms(){const el=$('#rooms');if(!el)return;el.innerHTML=[1,2,3,4,5,6].map(i=>{const m=META2[i];return `<button data-i="${i}" class="${sel===i?'pk':'gr'}" style="margin:0" ${m?'':'disabled'}>${m?esc(m.name):'ห้อง '+i+' (ว่าง)'}</button>`}).join('')}
+function joinScreen(msg){cleanup();app.innerHTML=`<div class="card">${beaker}<h1>Chem Quiz 🧪</h1><label>ชื่อเล่น</label><input id="nm" maxlength="14" placeholder="พิมพ์ชื่อเล่น"><label>เลือกห้อง</label><div class="g2" id="rooms"><p class="ct">กำลังโหลดรายชื่อห้อง...</p></div><label>รหัสผ่านห้อง</label><input id="pw" type="password" placeholder="รหัสผ่าน"><p id="er" class="er">${msg||''}</p><div class="ct"><button class="pk" onclick="join()">เข้าร่วม 🎈</button></div></div>`;
+$('#rooms').onclick=e=>{const b=e.target.closest('button[data-i]');if(b&&!b.disabled){sel=+b.dataset.i;drawRooms()}};
+on(db.ref('meta'),s=>{META2=s.val()||{};drawRooms()},()=>{$('#rooms').innerHTML='<p class="er">อ่านข้อมูลห้องไม่ได้ ตรวจ Rules ของ Firebase อีกครั้งนะคะ</p>'})}
+async function join(){const e=m=>$('#er').textContent=m,name=$('#nm').value.trim(),pw=$('#pw').value.trim();
+if(!name)return e('พิมพ์ชื่อเล่นก่อนนะ');if(!sel)return e('เลือกห้องก่อนนะ');if(!pw)return e('ใส่รหัสผ่านห้องด้วยนะ');
+const m=META2[sel];if(!m||await sha(pw)!==m.h)return e('รหัสผ่านห้องไม่ถูกต้อง');
+const R=db.ref('room/'+sel),ph=(await R.child('state/ph').once('value')).val();
+if(ph!=='lobby')return e(ph?'เกมเริ่มไปแล้ว เข้าร่วมไม่ได้แล้วนะ':'ครูยังไม่เปิดห้อง รอสักครู่นะ');
+const pls=(await R.child('players').once('value')).val()||{};
+if(Object.values(pls).some(p=>p.n.toLowerCase()===name.toLowerCase()))return e('ชื่อนี้มีคนใช้แล้ว ลองเติมตัวอักษรเพิ่มนะ');
+const c=await R.child('cnt').transaction(x=>(x||0)>=MAX?undefined:(x||0)+1);if(!c.committed)return e('ห้องเต็มแล้ว (สูงสุด 100 คน)');
+ID=R.child('players').push().key;SLOT=sel;await R.child('players/'+ID).set({n:name,s:0});localStorage.cq=JSON.stringify({id:ID,slot:SLOT});enter()}
+function enter(){cleanup();joined=0;MY=null;ST=null;BD=[];ALL={};ME={};imgI=-1;IMGQ=null;const R=db.ref('room/'+SLOT);
+on(R.child('players/'+ID),s=>{if(s.exists()){joined=1;ME=s.val()}else if(joined){localStorage.removeItem('cq');return joinScreen('ห้องถูกรีเซ็ตแล้ว เข้าร่วมใหม่ได้เลยนะ')}paintS()});
+on(R.child('players'),s=>{ALL=s.val()||{};if(ST&&ST.ph==='lobby')paintS()});
+on(R.child('board'),s=>{BD=s.val()||[];paintS()});
+on(R.child('ans/'+ID),s=>{MY=s.val();paintS()});
+on(R.child('state'),async s=>{ST=s.val();if(ST&&ST.ph==='q'&&ST.i!==imgI){imgI=ST.i;IMGQ=(await R.child('curImg').once('value')).val()}paintS()});
+every(tickS)}
+function paintS(){const s=ST;if(!s)return app.innerHTML=`<div class="card">${beaker}<h2>รอครูเปิดห้อง... ✨</h2></div>`;
+let h=`<div class="card ct">สวัสดี <b>${esc(ME.n||'')}</b> · คะแนน <b>${ME.s||0}</b></div>`;
+if(s.ph==='lobby')h+=`<div class="card">${beaker}<h2>รอเพื่อน ๆ อยู่นะ ✨</h2><p id="fact" class="ct"></p><div class="ct">${Object.values(ALL).map(p=>`<span class="chip">${esc(p.n)}</span>`).join('')}</div></div>`;
+else if(s.ph==='q')h+=MY?`<div class="card ct"><h2>ส่งคำตอบแล้ว ${SH[MY.c]} 💌</h2><p>รอเพื่อน ๆ และครูสักครู่...</p></div>`:`<div class="card"><div class="bar"><div id="bf"></div></div><h2 id="tm"></h2><h2>${esc(s.q)}</h2>${IMGQ?`<img src="${IMGQ}" style="display:block;max-width:100%;max-height:220px;margin:0 auto 10px;border-radius:16px">`:''}<div class="g2">${s.c.map((c,k)=>`<button class="ch c${k}" onclick="ans(${k})">${SH[k]} ${esc(c)}</button>`).join('')}</div></div>`;
+else if(s.ph==='sc')h+=`<div class="card ct"><h2>กำลังตรวจคำตอบ... ⏳</h2></div>`;
+else if(s.ph==='r')h+=`<div class="card ct"><h1>${ME.ok===1?'ถูกต้อง! 🎉':ME.ok===0?'ยังไม่ถูกนะ 💦':'ไม่ได้ตอบ ⏰'}</h1><h2>+${ME.g||0} คะแนน</h2><p>รวม ${ME.s||0} · อันดับที่ ${ME.r||'-'}</p><p>เฉลย: ${SH[s.a]} ${esc(s.c[s.a])}</p></div><div class="card"><h2>🏆 Top 15</h2>${board(BD)}</div>`;
+else if(s.ph==='f')h+=`<div class="card ct"><h1>🎉 จบเกมแล้ว!</h1><h2>คุณได้อันดับที่ ${ME.r||'-'} · ${ME.s||0} คะแนน</h2></div><div class="card"><h2>🏆 Top 15</h2>${board(BD)}</div><div class="ct"><button class="gr" onclick="localStorage.removeItem('cq');joinScreen()">ออกจากห้อง</button></div>`;
+app.innerHTML=h;tickS()}
+function tickS(){const f=$('#fact');if(f)f.textContent='💡 '+FACTS[Math.floor(Date.now()/6000)%FACTS.length];
+if(!ST||ST.ph!=='q'||MY||!$('#tm'))return;const left=(ST.end-now())/1000;
+$('#tm').textContent=left>0?'⏱ '+Math.ceil(left)+' วิ':'หมดเวลา ⏰';$('#bf').style.width=Math.max(0,Math.min(100,left/ST.t*100))+'%';
+if(left<=0)document.querySelectorAll('.ch').forEach(b=>b.disabled=true)}
+function ans(k){if(MY||now()>ST.end)return;MY={c:k};paintS();db.ref('room/'+SLOT+'/ans/'+ID).set({c:k,at:firebase.database.ServerValue.TIMESTAMP})}
+try{HOST?(sessionStorage.ok==='1'?menu():login()):stuInit();}catch(e){document.getElementById("app").innerHTML="<div class=card><h2>เกิดข้อผิดพลาด</h2><p>"+e.message+"</p></div>"}
+</script></body></html>
